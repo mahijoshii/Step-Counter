@@ -1,0 +1,73 @@
+#include <Wire.h>
+#include <LiquidCrystal.h>
+#include <MPU9250.h>
+
+MPU9250 mpu;
+
+#define LCD_RS PB5
+#define LCD_E PB4
+#define LCD_D4 PC7
+#define LCD_D5 PB6
+#define LCD_D6 PA7
+#define LCD_D7 PA6
+#define LED_PIN2 PA10
+
+LiquidCrystal LCD(LCD_RS, LCD_E, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
+float gyroVal[18]{};
+int stepCounter = 0;
+float maximum = 0;
+float currentAY;
+int threshold = 1; // Adjust this threshold based on your accelerometer readings
+
+void setup() {
+  Serial.begin(115200);
+  Wire.begin();
+  pinMode(LED_PIN2, OUTPUT);
+  LCD.begin(16, 2);
+  if (!mpu.setup(0x68)) {
+    while (1) {
+      Serial.println("MPU9250 connection failed. Please check your connection with connection_check example.");
+      delay(5000);
+    }
+  }
+  currentAY = mpu.getAccX();
+}
+
+void loop() {
+  digitalWrite(LED_PIN2, HIGH);
+  delay(1000);
+  digitalWrite(LED_PIN2, LOW);
+  if (mpu.update()) {
+    LCD.setCursor(4, 0);
+    LCD.print("GuideBit");
+    Serial.print("aX = ");
+    Serial.print(mpu.getAccX());
+    Serial.print(", aY = ");
+    Serial.print(mpu.getAccY());
+    Serial.print(", aZ = ");
+    Serial.print(mpu.getAccZ());
+    Serial.print(" gX = ");
+    Serial.print(mpu.getGyroX());
+    Serial.print(", gY = ");
+    Serial.print(mpu.getGyroY());
+    Serial.print(", gZ = ");
+    Serial.println(mpu.getGyroZ());
+  }
+  for(int i = 0; i<18; i++)
+  {
+    gyroVal[i] = mpu.getAccX();
+    if(gyroVal[i] >= gyroVal[i-1])
+    {
+        maximum = gyroVal[i];
+    }
+    Serial.println("DONE!!!");
+  }
+  LCD.setCursor(0,1);
+  LCD.print("Step Count: ");
+  if(maximum >= 0.05){
+    stepCounter++;
+    LCD.setCursor(12, 1);
+    LCD.print(stepCounter);
+    Serial.println("counted");
+  }
+}
